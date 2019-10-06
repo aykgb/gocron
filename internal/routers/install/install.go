@@ -1,22 +1,26 @@
 package install
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
+	macaron "gopkg.in/macaron.v1"
+
 	"github.com/go-macaron/binding"
+	"github.com/go-sql-driver/mysql"
+	"github.com/lib/pq"
 	"github.com/ouqiang/gocron/internal/models"
 	"github.com/ouqiang/gocron/internal/modules/app"
 	"github.com/ouqiang/gocron/internal/modules/setting"
 	"github.com/ouqiang/gocron/internal/modules/utils"
 	"github.com/ouqiang/gocron/internal/service"
-	"gopkg.in/macaron.v1"
 )
 
 // 系统安装
 
 type InstallForm struct {
-	DbType               string `binding:"In(mysql)"`
+	DbType               string `binding:"In(mysql,postgres)"`
 	DbHost               string `binding:"Required;MaxSize(50)"`
 	DbPort               int    `binding:"Required;Range(1,65535)"`
 	DbUsername           string `binding:"Required;MaxSize(50)"`
@@ -49,7 +53,7 @@ func Store(ctx *macaron.Context, form InstallForm) string {
 	}
 	err := testDbConnection(form)
 	if err != nil {
-		return json.CommonFailure("数据库连接失败", err)
+		return json.CommonFailure(err.Error())
 	}
 	// 写入数据库配置
 	err = writeConfig(form)
@@ -104,7 +108,7 @@ func writeConfig(form InstallForm) error {
 		"db.database", form.DbName,
 		"db.prefix", form.DbTablePrefix,
 		"db.charset", "utf8",
-		"db.max.idle.conns", "30",
+		"db.max.idle.conns", "5",
 		"db.max.open.conns", "100",
 		"allow_ips", "",
 		"app.name", "定时任务管理系统", // 应用名称
@@ -141,14 +145,29 @@ func testDbConnection(form InstallForm) error {
 	s.Db.Port = form.DbPort
 	s.Db.User = form.DbUsername
 	s.Db.Password = form.DbPassword
+	s.Db.Database = form.DbName
 	s.Db.Charset = "utf8"
 	db, err := models.CreateTmpDb(&s)
 	if err != nil {
 		return err
 	}
-
 	defer db.Close()
 	err = db.Ping()
+	if s.Db.Engine == "postgres" && err != nil {
+		pgError, ok := err.(*pq.Error)
+		if ok && pgError.Code == "3D000" {
+			err = errors.New("数据库不存在")
+		}
+		return err
+	}
+
+	if s.Db.Engine == "mysql" && err != nil {
+		mysqlError, ok := err.(*mysql.MySQLError)
+		if ok && mysqlError.Number == 1049 {
+			err = errors.New("数据库不存在")
+		}
+		return err
+	}
 
 	return err
 

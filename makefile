@@ -1,3 +1,5 @@
+GO111MODULE=on
+
 .PHONY: build
 build: gocron node
 
@@ -46,16 +48,23 @@ package-all: build-vue statik
 .PHONY: build-vue
 build-vue:
 	cd web/vue && yarn run build
-	cp -r web/vue/dist/ web/public/
+	cp -r web/vue/dist/* web/public/
 
 .PHONY: install-vue
 install-vue:
 	cd web/vue && yarn install
 
+.PHONY: run-vue
+run-vue:
+	cd web/vue && yarn run dev
+
 .PHONY: statik
 statik:
 	go get github.com/rakyll/statik
 	go generate ./...
+
+.PHONY: lint
+	golangci-lint run
 
 .PHONY: clean
 clean:

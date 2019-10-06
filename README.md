@@ -1,5 +1,4 @@
 # gocron - 定时任务管理系统
-[![Build Status](https://travis-ci.org/ouqiang/gocron.png)](https://travis-ci.org/ouqiang/gocron)
 [![Downloads](https://img.shields.io/github/downloads/ouqiang/gocron/total.svg)](https://github.com/ouqiang/gocron/releases)
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/ouqiang/gocron/blob/master/LICENSE)
 [![Release](https://img.shields.io/github/release/ouqiang/gocron.svg?label=Release)](https://github.com/ouqiang/gocron/releases)
@@ -56,19 +55,35 @@
 4. 浏览器访问 http://localhost:5920
 
 ### 源码安装
-- 安装Go 1.9+
+
+- 安装Go 1.11+
 - `go get -d github.com/ouqiang/gocron`
+- `export GO111MODULE=on` 
 - 编译 `make`
 - 启动
     * gocron `./bin/gocron web`
     * gocron-node `./bin/gocron-node`
+
+
+### docker
+
+```shell
+docker run --name gocron --link mysql:db -p 5920:5920 -d ouqg/gocron
+```
+
+配置: /app/conf/app.ini
+
+日志: /app/log/cron.log
+
+镜像不包含gocron-node, gocron-node需要和具体业务一起构建
+
 
 ### 开发
 
 1. 安装Go1.9+, Node.js, Yarn
 2. 安装前端依赖 `make install-vue`
 3. 启动gocron, gocron-node `make run`
-4. 启动node server `cd web/vue && yarn run dev`, 访问地址 http://localhost:8080  
+4. 启动node server `make run-vue`, 访问地址 http://localhost:8080
 
 访问http://localhost:8080, API请求会转发给gocron
 
